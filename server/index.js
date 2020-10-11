@@ -1,48 +1,35 @@
-const { ApolloServer, gql } = require('apollo-server')
+const { ApolloServer } = require("apollo-server");
+const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
 
-const todos = [
-  {
-    task: 'Wash car',
-    completed: false,
-  },
-  {
-    task: 'Clear room',
-    completed: true,
-  },
-]
+//  joins all given path segments together using the platform-specific separator
+// path.join('./','AA','BB') will return './AA/BB'
+const filePath = path.join(__dirname, "typeDefs.gql");
+const typeDefs = fs.readFileSync(filePath, "utf-8");
+const resolvers = require("./resolvers");
 
-// A schema is a collection of type definitions (hence "typeDefs")
-// that together define the "shape" of queries that are executed against
-// your data.
-const typeDefs = gql`
-  # Comments in GraphQL strings (such as this one) start with the hash (#) symbol.
-  # This "Todo" type defines the queryable fields for every book in our data source.
-  type Todo {
-    task: String
-    completed: Boolean
-  }
+require("dotenv").config({ path: "variables.env" });
+const User = require("./models/User");
+const Post = require("./models/Post");
 
-  # The "Query" type is special: it lists all of the available queries that
-  # clients can execute, along with the return type for each. In this
-  # case, the "allTodos" query returns an array of zero or more Todos (defined above).
-  type Query {
-    allTodos: [Todo]
-  }
-`
-
-// Resolvers define the technique for fetching the types defined in the
-// schema. This resolver retrieves books from the "books" array above.
-const resolvers = {
-  Query: {
-    allTodos: () => todos,
-  },
-}
+mongoose
+  .connect(
+    process.env.DB_CONNECTION,
+    { useNewUrlParser: true,useUnifiedTopology: true }
+  )
+  .then(() => console.log("DB connected"))
+  .catch(err => console.error(err));
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-})
+  context: {
+    User,
+    Post
+  }
+});
 
 server.listen().then(({ url }) => {
-  console.log(`🚀  Server ready at ${url}`)
-})
+  console.log(`Server listening on ${url}`);
+});
